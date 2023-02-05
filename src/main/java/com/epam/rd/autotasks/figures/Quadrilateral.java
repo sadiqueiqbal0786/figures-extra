@@ -1,82 +1,131 @@
 package com.epam.rd.autotasks.figures;
 
+import static java.lang.Math.*;
+
 class Quadrilateral extends Figure {
-    Point a;
-    Point b;
-    Point c;
-    Point d;
-    private boolean isP4Inside;    // true - НЕвыпуклый . false - выпуклый private boolean  isP4Inside ;    // true - НЕвыпуклый . false - выпуклый
+    public Point a;
+    public Point b;
+    public Point c;
+    public Point d;
 
-    public Quadrilateral(Point a, Point b, Point c, Point d) {
-        if (a == null || b == null || c == null || d == null) {
-            throw new IllegalArgumentException();
-        }
-        if (!isP4Inside) {
-            throw new IllegalArgumentException();
-        }
-        if (a.getX() == -1 && a.getY() == -1 && b.getX() == 1 && b.getY() == 1 && c.getX() == 2 && c.getY() == 2 && d.getX() == 3 && d.getY() == -3) {
-            throw new IllegalArgumentException();
-        } else {
-            this.a = a;
-            this.b = b;
-            this.c = c;
-            this.d = d;
-        }
+    public Quadrilateral(Point a, Point b, Point c, Point d){
+        if(a == null || b == null || c == null || d == null) throw new IllegalArgumentException();
+        this.a = a;
+        this.b = b;
+        this.c = c;
+        this.d = d;
+        if(length(a,b)==0 || length(b, c)==0 || length(c, a)==0 || length(a, d)==0)throw new IllegalArgumentException();
+        if(area()==0) throw new IllegalArgumentException();
+        if(checkDirectionalFactors(a,b,c)) throw new IllegalArgumentException();
+        if(checkDirectionalFactors(b,c,d)) throw new IllegalArgumentException();
+        double points[][] = {{a.getX(),a.getY()},{b.getX(),b.getY()},{c.getX(),c.getY()},{d.getX(),d.getY()}};
+        if (!isConvex(points)) throw new IllegalArgumentException();
     }
 
     @Override
-    public Point centroid() {
-        Point gA = new Triangle(b, c, d).centroid();
-        Point gB = new Triangle(a, c, d).centroid();
-        Point gC = new Triangle(a, b, b).centroid();
-        Point gD = new Triangle(a, b, c).centroid();
-        return findIntersection(gA, gC, gB, gD);
+    public Point centroid(){
+        Point centroidOfTriangle1 = centroidOfTriangle(a, b, c);
+        Point centroidOfTriangle2 = centroidOfTriangle(a, c, d);
+        Point centroidOfTriangle3 = centroidOfTriangle(a, b, d);
+        Point centroidOfTriangle4 = centroidOfTriangle(c, b, d);
+        return getIntersectionPoint(centroidOfTriangle1, centroidOfTriangle2, centroidOfTriangle3, centroidOfTriangle4);
+
     }
-
-    public static Point findIntersection(Point l1s, Point l1e, Point l2s, Point l2e) {
-
-        double a1 = l1e.getY() - l1s.getY();
-        double b1 = l1s.getX() - l1e.getX();
-        double c1 = a1 * l1s.getX() + b1 * l1s.getY();
-
-        double a2 = l2e.getY() - l2s.getY();
-        double b2 = l2s.getX() - l2e.getX();
-        double c2 = a2 * l2s.getX() + b2 * l2s.getY();
-
-        double delta = a1 * b2 - a2 * b1;
-        if (delta == 0) {
-            return null;
-        }
-        return new Point((b2 * c1 - b1 * c2) / delta, (a1 * c2 - a2 * c1) / delta);
-    }
-
-
     @Override
-    public boolean isTheSame(Figure figure) {
-        if (this == figure) {
-            return true;
+    public boolean isTheSame(Figure figure){
+        if(figure instanceof Quadrilateral){
+            Quadrilateral other = (Quadrilateral) figure;
+            return arePointsEqual(other);
         }
-        if (figure instanceof Quadrilateral) {
-            return true;
-        }
-        if (figure == null) {
-            return false;
-        }
-        Quadrilateral one = (Quadrilateral) figure;
+        else return false;
 
-        if ((this.a == one.a) && (this.b == one.b) && (this.c == one.c) && (this.d == one.d)) {
-            return true;
-        }
-        if ((this.b == one.a) && (this.c == one.b) && (this.d == one.c) && (this.a == one.d)) {
-            return true;
-        }
-        if ((this.b == one.a) && (this.a == one.b) && (this.d == one.c) && (this.c == one.d)) {
-            return true;
-        }
-        if ((this.c == one.a) && (this.b == one.b) && (this.a == one.c) && (this.d == one.d)) {
-            return true;
-        } else {
-            return false;
-        }
     }
+
+    public double roundTo3DecimalPlace(double value) {
+        return Math.round(value * 1000.0) / 1000.0;
+    }
+
+    private boolean arePointsEqual(Quadrilateral A){
+        double counter = 4;
+        Point aPoints[] = {A.a, A.b, A.c, A.d};
+        Point bPoints[] = {a, b, c, d};
+        for(int i =0;i<4;i++){
+            for(int j = 0;j<4;j++){
+                if(roundTo3DecimalPlace(aPoints[i].getX()) == roundTo3DecimalPlace(bPoints[j].getX()) && roundTo3DecimalPlace(aPoints[i].getY()) == roundTo3DecimalPlace(bPoints[j].getY()))counter--;
+            }
+        }
+        if(counter<=0)return true;
+        else return false;
+    }
+
+    private Point getIntersectionPoint(Point A, Point B, Point C, Point D){
+        double a1 = B.getY() - A.getY();
+        double b1 = A.getX() - B.getX();
+        double c1 = a1*(A.getX()) + b1*(A.getY());
+
+        double a2 = D.getY() - C.getY();
+        double b2 = C.getX() - D.getX();
+        double c2 = a2*(C.getX())+ b2*(C.getY());
+        double determinant = a1*b2 - a2*b1;
+
+        double x = (b2*c1 - b1*c2)/determinant;
+        double y = (a1*c2 - a2*c1)/determinant;
+        return new Point(x, y);
+
+    }
+
+    private Point centroidOfTriangle(Point a, Point b, Point c){
+        return new Point((a.getX()+b.getX()+c.getX())/3,(a.getY()+b.getY()+c.getY())/3);
+    }
+
+    private double length(Point A, Point B) {
+        double length= sqrt(pow(B.getX()-A.getX(),2)+pow(B.getY()-A.getY(),2));
+        return length;
+    }
+
+    private double areaOfTriangle(Point a,Point b, Point c){
+        double area =  a.getX()* (b.getY() - c.getY()) +
+                b.getX() * (c.getY() - a.getY()) +
+                c.getX() * (a.getY() - b.getY());
+        return area;
+    }
+
+    private double area(){
+        return areaOfTriangle(a, b, c) + areaOfTriangle(a, c, d);
+    }
+
+    private boolean checkDirectionalFactors(Point x1,Point x2,Point x3){
+        //calculate the directional factors
+        double directionalFactor1 = (x2.getY()-x1.getY())/(x2.getX()-x1.getX());
+        double directionalFactor2 = (x3.getY()-x1.getY())/(x3.getX()-x1.getX());
+        if(directionalFactor1==directionalFactor2) return true;
+        else return false;
+    }
+
+    private double CrossProduct(double A[][]){
+        double X1 = (A[1][0] - A[0][0]);
+        double Y1 = (A[1][1] - A[0][1]);
+        double X2 = (A[2][0] - A[0][0]);
+        double Y2 = (A[2][1] - A[0][1]);
+        return (X1 * Y2 - Y1 * X2);
+    }
+
+    private boolean isConvex(double points[][]){
+        int n = points.length;
+        //direction of cross product of previous traversed edges
+        double prev = 0;
+        //direction of cross product of current traversed edges
+        double curr = 0;
+
+        for (int i = 0; i < n; i++) {
+            double temp[][]= { points[i],points[(i + 1) % n],points[(i + 2) % n] };
+            curr = CrossProduct(temp);
+            if (curr != 0) {
+                if (curr * prev < 0) return false;
+                else prev = curr;
+            }
+        }
+        return true;
+    }
+
 }
